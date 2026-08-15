@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Database
+notes.db
+
+# Logs
+server.log
+*.log
+
+# ML model cache (downloaded at runtime)
+models/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Editor/OS
+.DS_Store
