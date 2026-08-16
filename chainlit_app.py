@@ -57,7 +57,8 @@ async def repondre(message: cl.Message):
 
     try:
         stream = graph.astream(
-            {"messages": [HumanMessage(message.content)]},
+            # `recherches: 0` remet le budget à neuf à chaque question.
+            {"messages": [HumanMessage(message.content)], "recherches": 0},
             config=config,
             stream_mode=["messages", "updates"],
         )
@@ -87,12 +88,14 @@ async def _afficher_etapes(payload: dict, etapes: dict[str, cl.Step]) -> None:
             continue
         for msg in update.get("messages", []):
             if node == "agent":
-                for appel in getattr(msg, "tool_calls", []):
-                    etape = cl.Step(name="recherche sémantique", type="tool")
-                    etape.input = appel["args"].get("requete", appel["args"])
+                for appel in getattr(msg, "tool_calls", None) or []:
+                    args = appel["args"]
+                    mots = ", ".join(args.get("mots_cles") or []) or "aucun"
+                    etape = cl.Step(name="recherche", type="tool")
+                    etape.input = f"sens : {args.get('requete', '')}\nmots-clés : {mots}"
                     await etape.send()
                     etapes[appel["id"]] = etape
-            elif node == "outils":
+            elif node == "recherches":
                 etape = etapes.pop(getattr(msg, "tool_call_id", None), None)
                 if etape is not None:
                     etape.output = msg.content

@@ -80,33 +80,72 @@ port.
 
 ```
 agent/
-├── prompts.py   Prompt système (dont la technique de reformulation)
-├── tools.py     Les outils. Pour l'instant : recherche_dans_les_notes
-└── graph.py     Le graphe LangGraph et la configuration du modèle
+├── prompts.py   Prompt système, en blocs composables
+├── tools.py     Les outils. Pour l'instant : rechercher_dans_les_notes
+└── graph.py     Le graphe LangGraph, le budget et la config du modèle
 
 chainlit_app.py  Interface de chat : streaming + Steps de débogage
 notes_store.py   Base, embeddings et recherche — partagés avec l'API
 ```
 
-Le graphe est une boucle ReAct minimale :
+Le graphe est une boucle ReAct minimale, plafonnée :
 
 ```
-START → agent ──(veut un outil ?)──→ outils ──┐
-          ↑                                   │
-          └───────────────────────────────────┘
+START → agent ──(veut chercher ?)──→ recherches ──┐
+          ↑                                       │
+          └───────────────────────────────────────┘
           └──(non)──→ END
 ```
 
-Le cœur de l'agent est la **reformulation de la requête**. Une note est une
-affirmation ; une question ne lui ressemble pas vectoriellement. L'agent
-transforme donc « Combien de temps cuit la pizza 4 fromages d'Intermarché ? »
-en « la pizza 4 fromages d'Intermarché cuit X minutes à Y degrés », ce qui
-place la requête bien plus près de la note recherchée dans l'espace
-d'embeddings.
+### 1. Reformuler la question
 
-Dans Chainlit, chaque appel d'outil apparaît comme une étape dépliable
-montrant la requête formulée et les notes remontées avec leur score — c'est
-la boucle de feedback pour ajuster le prompt.
+Une note est une affirmation ; une question ne lui ressemble pas
+vectoriellement. L'agent transforme donc « Combien de temps cuit la pizza
+4 fromages d'Intermarché ? » en « la pizza 4 fromages d'Intermarché cuit
+X minutes à Y degrés », ce qui rapproche la requête de la note cherchée dans
+l'espace d'embeddings.
+
+### 2. Chercher sur deux axes
+
+L'agent produit aussi des **mots-clés** (`["pizza", "4 fromages",
+"Intermarché"]`). Deux recherches tournent alors en parallèle :
+
+- **sémantique** — rattrape les synonymes et les fautes de frappe. Une note
+  écrite « rasberrypies » répond à « Raspberry Pi » ;
+- **mots-clés** — ancre la recherche sur ce qui ne se devine pas : noms
+  propres, marques, chiffres. Comparaison sans accents ni casse, tolérante aux
+  pluriels (« workflow » trouve « workflows »).
+
+Les deux classements sont fusionnés par **Reciprocal Rank Fusion**. On fusionne
+les rangs et non les scores, parce qu'un cosinus et un nombre de termes trouvés
+ne vivent pas sur la même échelle. Une note qui satisfait les deux signaux
+cumule deux contributions et passe devant : c'est là que se gagne la précision.
+
+Les mots-clés introuvables dans toute la base sont signalés à l'agent — c'est
+le signal le plus net que l'information n'existe pas.
+
+### 3. Juger, puis recommencer
+
+Après chaque recherche, l'agent décide si les résultats suffisent (scores
+faibles ? aucun mot-clé trouvé ? sujet correct mais information absente ?) et
+peut relancer une recherche reformulée.
+
+Le budget est tenu par le **graphe**, pas par le prompt : au-delà de
+`MAX_RECHERCHES`, l'appel de l'outil est interdit côté API et le prompt de
+recherche est remplacé par un prompt de réponse seule. Une consigne se
+négocie, pas un outil inaccessible.
+
+> Deux pièges rencontrés, corrigés dans le code : sans outil, le modèle
+> **invente une note** plutôt que d'admettre l'échec (d'où une interdiction
+> explicite d'inventer) ; et tant que le prompt décrit l'outil, il tente de
+> l'appeler quand même — Gemini renvoie alors `MALFORMED_FUNCTION_CALL`,
+> c'est-à-dire une réponse vide (d'où le prompt découpé en blocs).
+
+### Déboguer
+
+Dans Chainlit, chaque recherche apparaît comme une étape dépliable montrant la
+requête sémantique, les mots-clés, les notes remontées avec leur score et leurs
+correspondances, et le compteur `recherche N/3`.
 
 ### Faire évoluer
 
@@ -122,4 +161,5 @@ la boucle de feedback pour ajuster le prompt.
 | ----------------------------- | ------------------ | ------------------------------------------- |
 | `GOOGLE_API_KEY`              | —                  | Requise par l'agent (`GEMINI_API_KEY` marche aussi) |
 | `NOTES_AGENT_MODEL`           | `gemini-3.1-flash-lite` | Modèle utilisé                              |
+| `NOTES_AGENT_MAX_RECHERCHES`  | `3`                | Recherches autorisées par question          |
 | `NOTES_AGENT_THINKING_BUDGET` | défaut du modèle   | Budget de réflexion : `0` = désactivé, `-1` = dynamique |
