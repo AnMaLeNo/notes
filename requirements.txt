@@ -5,5 +5,7 @@ numpy
 
 # Agent conversationnel
 langgraph
+langgraph-checkpoint-sqlite
 langchain-google-genai
 chainlit
+python-dotenv

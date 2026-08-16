@@ -5,6 +5,9 @@ __pycache__/
 
 # Database
 notes.db
+# Historique des fils + conversations archivées : données personnelles.
+conversations.db
+conversations.db-*
 
 # Logs
 server.log
@@ -16,8 +19,10 @@ models/
 # Secrets
 .env
 
-# Chainlit
-.chainlit/
+# Chainlit — sauf sa config, qui porte le nom et le thème de l'interface
+# embarquée dans l'app et doit donc survivre à un clone.
+.chainlit/*
+!.chainlit/config.toml
 .files/
 
 # Frontend

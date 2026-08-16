@@ -2,6 +2,12 @@
 
 Pour l'instant un seul : la recherche hybride. Les suivants s'ajoutent ici
 puis dans `TOOLS`, sans toucher au graphe.
+
+La recherche renvoie un couple `(texte, artefact)` : le texte part au modèle,
+l'artefact reste attaché au `ToolMessage` sans consommer de tokens. C'est lui
+qui permet à l'interface d'afficher les notes trouvées comme de vraies cartes
+cliquables — et non comme le pavé de texte destiné au modèle — et de figurer
+telles quelles dans les conversations sauvegardées.
 """
 
 from datetime import datetime
@@ -21,8 +27,8 @@ def _format_date(iso: str) -> str:
         return iso
 
 
-@tool(parse_docstring=True)
-def rechercher_dans_les_notes(requete: str, mots_cles: list[str]) -> str:
+@tool(parse_docstring=True, response_format="content_and_artifact")
+def rechercher_dans_les_notes(requete: str, mots_cles: list[str]) -> tuple[str, dict]:
     """Recherche dans les notes personnelles de l'utilisateur.
 
     Appelle cet outil dès que la réponse dépend de ce que l'utilisateur a noté :
@@ -58,13 +64,14 @@ def rechercher_dans_les_notes(requete: str, mots_cles: list[str]) -> str:
         )
 
     if not notes:
-        return "\n".join(
+        texte = "\n".join(
             [
                 f"Aucun résultat : aucune note au-dessus du seuil de similarité "
                 f"({SCORE_THRESHOLD}) et aucun mot-clé trouvé.",
                 *alertes,
             ]
         )
+        return texte, resultat
 
     blocs = []
     for n in notes:
@@ -75,7 +82,7 @@ def rechercher_dans_les_notes(requete: str, mots_cles: list[str]) -> str:
         )
 
     entete = [f"{len(notes)} note(s), classement fusionné sens + mots-clés :", *alertes]
-    return "\n\n".join(["\n".join(entete), *blocs])
+    return "\n\n".join(["\n".join(entete), *blocs]), resultat
 
 
 TOOLS = [rechercher_dans_les_notes]

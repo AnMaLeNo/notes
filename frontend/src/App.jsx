@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Archives from './Archives.jsx'
 import Map2D from './Map2D.jsx'
 import Map3D from './Map3D.jsx'
 
@@ -19,8 +20,10 @@ function formatDate(iso) {
 
 const VIEWS = [
   { id: 'list', label: 'Liste' },
+  { id: 'agent', label: 'Agent' },
   { id: '2d', label: 'Carte 2D' },
   { id: '3d', label: 'Carte 3D' },
+  { id: 'archives', label: 'Archives' },
 ]
 
 function initialView() {
@@ -115,7 +118,7 @@ export default function App() {
   }, [view])
 
   useEffect(() => {
-    if (view === 'list') return
+    if (view !== '2d' && view !== '3d') return
     let active = true
     const load = () =>
       api('/api/map')
@@ -218,6 +221,10 @@ export default function App() {
         )}
       </header>
 
+      {/* La barre ci-dessus retrouve une note instantanément et hors ligne ;
+          l'onglet Agent répond à une question, au prix d'un appel au modèle.
+          Les deux cohabitent parce qu'ils ne servent pas au même usage. */}
+
       <nav className="tabs">
         {VIEWS.map((v) => (
           <button
@@ -262,6 +269,14 @@ export default function App() {
             ))}
           </section>
         </>
+      ) : view === 'agent' ? (
+        /* L'interface Chainlit, montée sur /chat par FastAPI. Même module que
+           le port 8400 : ce qu'on déboguera là-bas est exactement ce qui
+           s'affiche ici. Le bouton « Signaler » vit dans cette iframe et écrit
+           dans les mêmes archives. */
+        <iframe className="chat-frame" src="/chat/" title="Agent" />
+      ) : view === 'archives' ? (
+        <Archives />
       ) : (
         <section className="map-section">
           {mapData.length < 2 ? (
