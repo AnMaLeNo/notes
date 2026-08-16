@@ -26,7 +26,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from agent.prompts import PROMPT_SANS_RECHERCHE, SYSTEM_PROMPT
+from agent.prompts import PROMPT_SANS_RECHERCHE, PROMPT_VERSION, SYSTEM_PROMPT
 from agent.tools import TOOLS
 
 MODEL = os.getenv("NOTES_AGENT_MODEL", "gemini-3.1-flash-lite")
@@ -57,6 +57,21 @@ class EtatAgent(MessagesState):
     """L'historique de conversation, plus le compteur de recherches du tour."""
 
     recherches: int
+
+
+def config_agent() -> dict:
+    """Ce qui a produit une réponse, figé au moment de la sauvegarder.
+
+    Une mauvaise réponse relue dans six mois ne vaut rien si on ignore quel
+    modèle, quel budget et quel prompt l'ont produite — c'est justement ce
+    qu'on aura changé entre-temps.
+    """
+    return {
+        "modele": MODEL,
+        "max_recherches": MAX_RECHERCHES,
+        "thinking_budget": _THINKING_BUDGET,
+        "version_prompt": PROMPT_VERSION,
+    }
 
 
 def api_key() -> str:
@@ -116,7 +131,15 @@ def build_graph(checkpointer=None):
             msg.model_copy(
                 update={
                     "content": f"{msg.content}\n\n"
-                    f"(recherche {faites + i}/{MAX_RECHERCHES})"
+                    f"(recherche {faites + i}/{MAX_RECHERCHES})",
+                    # Le compteur voyage aussi dans l'artefact : l'interface
+                    # l'affiche sans avoir à le récupérer du texte destiné au
+                    # modèle.
+                    "artifact": {
+                        **(msg.artifact or {}),
+                        "recherche": faites + i,
+                        "max_recherches": MAX_RECHERCHES,
+                    },
                 }
             )
             for i, msg in enumerate(resultat["messages"], start=1)

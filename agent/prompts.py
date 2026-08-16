@@ -8,6 +8,8 @@ c'est-à-dire une réponse vide. Au moment de répondre, les consignes de
 recherche ne sont pas seulement inutiles — elles nuisent.
 """
 
+import hashlib
+
 _ROLE = """\
 Tu es l'assistant de recherche d'une application de prise de notes personnelles.
 L'utilisateur y jette ses notes en vrac, sans classement ni titre. Ton rôle est
@@ -92,3 +94,11 @@ savoir ce qu'il a noté, lui."""
 SYSTEM_PROMPT = "\n\n".join([_ROLE, _OUTIL, _REQUETE, _JUGER, _REPONDRE])
 
 PROMPT_SANS_RECHERCHE = "\n\n".join([_ROLE, _REPONDRE])
+
+# Empreinte des prompts, enregistrée avec chaque conversation sauvegardée.
+# Dérivée du texte plutôt que tenue à la main : impossible de retoucher un
+# prompt en oubliant d'incrémenter un numéro. Relire dans six mois une
+# mauvaise réponse sans savoir quel prompt l'a produite ne sert à rien.
+PROMPT_VERSION = hashlib.sha256(
+    "\x00".join([SYSTEM_PROMPT, PROMPT_SANS_RECHERCHE]).encode()
+).hexdigest()[:8]

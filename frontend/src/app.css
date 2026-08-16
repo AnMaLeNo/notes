@@ -312,3 +312,134 @@ body {
   color: var(--danger-text);
   font-weight: 600;
 }
+
+/* --- Agent conversationnel ------------------------------------------------ */
+
+/* L'interface Chainlit, montée sur /chat. Elle gère son propre défilement :
+   on lui donne une hauteur ferme plutôt que de la laisser se dimensionner
+   toute seule, sinon elle s'effondre à quelques pixels dans l'iframe. */
+.chat-frame {
+  width: 100%;
+  height: min(78vh, 900px);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+/* --- Rendu des échanges (onglet Archives) --------------------------------- */
+
+.bulle {
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+.bulle-user {
+  align-self: flex-end;
+  max-width: 85%;
+  background: var(--accent);
+  color: var(--surface);
+  white-space: pre-wrap;
+}
+
+.bulle-agent {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.agent-texte {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.etape-champ {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+.etape-label {
+  display: inline-block;
+  min-width: 5.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.etape-absent .etape-label {
+  color: var(--danger);
+}
+
+.source {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.7rem 0.4rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.source .note-content {
+  margin-bottom: 0.35rem;
+}
+
+.source-mots {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* --- Archives ------------------------------------------------------------- */
+
+.archive-tete {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.archive-question {
+  overflow-wrap: break-word;
+}
+
+.archive-motif {
+  margin: 0.5rem 0 0;
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--danger);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.archive-meta {
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.archive-tag {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.archive-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.archive-outil {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--bg);
+}

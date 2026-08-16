@@ -1,0 +1,13 @@
+# Traçage optionnel — à installer *seulement* si tu actives
+# NOTES_AGENT_TRACING dans .env. Voir agent/tracing.py.
+#
+#     .venv/bin/pip install -r requirements-tracing.txt
+#
+# Sans ces paquets, l'agent et l'archivage des conversations fonctionnent
+# normalement : `agent/tracing.py` avale l'import manquant et se contente
+# d'un avertissement.
+#
+# `langchain` n'est requis que par l'intégration LangChain de Langfuse ;
+# l'app elle-même n'utilise que `langchain-core`, tiré par langgraph.
+langfuse
+langchain
