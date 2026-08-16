@@ -2,3 +2,8 @@ fastapi
 uvicorn[standard]
 fastembed
 numpy
+
+# Agent conversationnel
+langgraph
+langchain-google-genai
+chainlit
