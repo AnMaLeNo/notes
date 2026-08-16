@@ -13,6 +13,13 @@ server.log
 # ML model cache (downloaded at runtime)
 models/
 
+# Secrets
+.env
+
+# Chainlit
+.chainlit/
+.files/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

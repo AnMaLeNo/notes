@@ -1,60 +1,32 @@
 """Notes app — prise de notes minimaliste avec recherche sémantique locale.
 
 Lancement : .venv/bin/uvicorn app:app --host 0.0.0.0 --port 8300
+
+L'agent conversationnel vit à part, dans `chainlit_app.py`.
 """
 
-import sqlite3
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastembed import TextEmbedding
 from pydantic import BaseModel
 
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "notes.db"
-MODELS_DIR = BASE_DIR / "models"
-MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
-SEARCH_LIMIT = 20
-SCORE_THRESHOLD = 0.25
-
-model: TextEmbedding | None = None
-
-
-def get_db() -> sqlite3.Connection:
-    db = sqlite3.connect(DB_PATH)
-    db.row_factory = sqlite3.Row
-    return db
-
-
-def init_db() -> None:
-    with get_db() as db:
-        db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS notes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                content TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-                embedding BLOB NOT NULL
-            )
-            """
-        )
-
-
-def embed(text: str) -> np.ndarray:
-    """Embedding L2-normalisé (float32) — la similarité cosinus devient un produit scalaire."""
-    vec = np.array(next(model.embed([text])), dtype=np.float32)
-    return vec / np.linalg.norm(vec)
+from notes_store import (
+    BASE_DIR,
+    embed,
+    get_db,
+    get_model,
+    init_db,
+    note_row_to_dict,
+    search_notes,
+)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global model
     init_db()
-    model = TextEmbedding(model_name=MODEL_NAME, cache_dir=str(MODELS_DIR))
+    get_model()
     yield
 
 
@@ -63,10 +35,6 @@ app = FastAPI(title="Notes", lifespan=lifespan)
 
 class NoteIn(BaseModel):
     content: str
-
-
-def note_row_to_dict(row: sqlite3.Row) -> dict:
-    return {"id": row["id"], "content": row["content"], "created_at": row["created_at"]}
 
 
 @app.post("/api/notes")
@@ -103,24 +71,8 @@ def delete_note(note_id: int):
 
 
 @app.get("/api/search")
-def search_notes(q: str):
-    q = q.strip()
-    if not q:
-        return []
-    with get_db() as db:
-        rows = db.execute("SELECT * FROM notes").fetchall()
-    if not rows:
-        return []
-    query_vec = embed(q)
-    matrix = np.frombuffer(b"".join(r["embedding"] for r in rows), dtype=np.float32)
-    matrix = matrix.reshape(len(rows), -1)
-    scores = matrix @ query_vec
-    order = np.argsort(scores)[::-1][:SEARCH_LIMIT]
-    return [
-        {**note_row_to_dict(rows[i]), "score": round(float(scores[i]), 3)}
-        for i in order
-        if scores[i] >= SCORE_THRESHOLD
-    ]
+def search(q: str):
+    return search_notes(q)
 
 
 @app.get("/api/map")
