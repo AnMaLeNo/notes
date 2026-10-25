@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Données (notes.db, conversations.db, cache du modèle d'embedding, .files)
+    # dans /data ; GOOGLE_API_KEY etc. via env_file ou environment.
+    volumes:
+      - notes-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8300/api/notes')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+volumes:
+  notes-data:

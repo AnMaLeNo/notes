@@ -1,0 +1,12 @@
+.git
+.venv/
+__pycache__/
+*.pyc
+.env
+notes.db
+conversations.db*
+models/
+.files/
+*.log
+frontend/node_modules/
+frontend/dist/
